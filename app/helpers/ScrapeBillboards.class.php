@@ -21,7 +21,12 @@ class ScrapeBillboards
         $this->host = $scheme . '://' . parse_url($this->config['page_path'], PHP_URL_HOST);
     }
 
-
+    /**
+     * Входная функция парсинга.
+     *
+     * @return array массив информации о щитах
+     * @throws Exception
+     */
     public function scrape()
     {
         $doc = new DOMDocument();
@@ -33,49 +38,56 @@ class ScrapeBillboards
         $xpath = new DOMXpath($doc);
         $rows = $xpath->query('//form[@name="sel"]/table/tr');
 
+        $boards = [];
+
         foreach ($rows as $row)
         {
-            $billboardInfo = [
-                'bb_address' => null,   // Адрес щита
-                'bb_side' => null,      // Сторона щита
-                'bb_link_owner_site' => null, // Ссылка на карточку щита (всплывающее окно с фото и схемой щита)
-                'bb_image' => null,     // Ссылка на фото щита
-                'bb_shema' => null      // Ссылка на схему щита
-            ];
-
-            $cols = $row->getElementsByTagName('td');
-            if ($cols->length == 3)
-            {
-                $billboardInfo['bb_side'] = isset($this->config['side_letter']['associations'][$cols->item(
-                        1
-                    )->textContent]) ?
-                    $this->config['side_letter']['associations'][$cols->item(1)->textContent] :
-                    $this->config['side_letter']['exclusive'];
-
-                $billboardInfo['bb_address'] = $cols->item(2)->textContent;
-
-                if ($link = $cols->item(2)->getElementsByTagName('a')->item(0))
-                {
-                    $click = $link->getAttribute("onclick");
-                    preg_match("/'+(.*)'+/U", $click, $matches);
-
-                    $url = $this->host . $matches[1];
-                    $billboardInfo['bb_link_owner_site'] = $url;
-
-                    $this->getBoardContent($url, $billboardInfo);
-                }
-            }
+            $boards[] = $this->parseBillboard($row);
         }
+
+        return $boards;
     }
 
     /**
+     * Парсит информацию об одном щите.
      *
      * @param DOMElement $row строка таблицы где предполагаемо находится описание щита
      * @return array массив с информацией о щите
      */
     protected function parseBillboard($row)
     {
+        $billboardInfo = [
+            'bb_address' => null,   // Адрес щита
+            'bb_side' => null,      // Сторона щита
+            'bb_link_owner_site' => null, // Ссылка на карточку щита (всплывающее окно с фото и схемой щита)
+            'bb_image' => null,     // Ссылка на фото щита
+            'bb_shema' => null      // Ссылка на схему щита
+        ];
 
+        $cols = $row->getElementsByTagName('td');
+        if ($cols->length == 3)
+        {
+            $billboardInfo['bb_side'] = isset($this->config['side_letter']['associations'][$cols->item(
+                    1
+                )->textContent]) ?
+                $this->config['side_letter']['associations'][$cols->item(1)->textContent] :
+                $this->config['side_letter']['exclusive'];
+
+            $billboardInfo['bb_address'] = $cols->item(2)->textContent;
+
+            if ($link = $cols->item(2)->getElementsByTagName('a')->item(0))
+            {
+                $click = $link->getAttribute("onclick");
+                preg_match("/'+(.*)'+/U", $click, $matches);
+
+                $url = $this->host . $matches[1];
+                $billboardInfo['bb_link_owner_site'] = $url;
+
+                $this->getBoardContent($url, $billboardInfo);
+            }
+        }
+
+        return $billboardInfo;
     }
 
     /**
@@ -112,7 +124,7 @@ class ScrapeBillboards
     {
         if ($img = $column->getElementsByTagName('img')->item(0))
         {
-            if($src = trim($img->getAttribute('src')))
+            if ($src = trim($img->getAttribute('src')))
             {
                 $url = $this->host . $src;
 
