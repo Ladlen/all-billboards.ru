@@ -17,8 +17,10 @@ class ScrapeBillboards
     public function __construct($config)
     {
         $this->config = $config;
-        $this->host = parse_url($this->config['page_path'], PHP_URL_HOST);
+        $scheme = parse_url($this->config['page_path'], PHP_URL_SCHEME);
+        $this->host = $scheme . '://' . parse_url($this->config['page_path'], PHP_URL_HOST);
     }
+
 
     public function scrape()
     {
@@ -50,7 +52,7 @@ class ScrapeBillboards
                     $this->config['side_letter']['associations'][$cols->item(1)->textContent] :
                     $this->config['side_letter']['exclusive'];
 
-                $billboardInfo['bb_address'] = $cols->item(2);
+                $billboardInfo['bb_address'] = $cols->item(2)->textContent;
 
                 if ($link = $cols->item(2)->getElementsByTagName('a')->item(0))
                 {
@@ -63,33 +65,63 @@ class ScrapeBillboards
                     $this->getBoardContent($url, $billboardInfo);
                 }
             }
-
-            #$xpath = new DOMXpath($row);
-            #$td = $xpath->query('td');
-
-        }
-        exit;
-
-        foreach ($articles as $container)
-        {
-            print_r($container);
-            /*$arr = $container->getElementsByTagName("a");
-            foreach ($arr as $item)
-            {
-                $click = $item->getAttribute("onclick");
-                preg_match("/'+(.*)'+/U", $click, $matches);
-
-                print_r($matches);
-                die();
-
-                #$text = trim(preg_replace("/[\r\n]+/", " ", $item->nodeValue));
-                echo $click . "\n";
-            }*/
         }
     }
 
-    protected function getBoardContent($url, &$billboardInfo)
+    /**
+     *
+     * @param DOMElement $row строка таблицы где предполагаемо находится описание щита
+     * @return array массив с информацией о щите
+     */
+    protected function parseBillboard($row)
     {
 
+    }
+
+    /**
+     * Размещает в массиве описания щита пути к изображению и схеме.
+     *
+     * @param string $url путь к странице с изображением и схемой щита
+     * @param array $billboardInfo массив описывающий щит
+     */
+    protected function getBoardContent($url, &$billboardInfo)
+    {
+        $doc = new DOMDocument();
+        if (!$doc->loadHTMLFile($url))
+        {
+            echo('Не удалось загрузить документ ' . $this->config['page_path'] . "<br>\n");
+            return;
+        }
+
+        $xpath = new DOMXpath($doc);
+        $cols = $xpath->query('//table/tr/td');
+
+        $this->putImageIntoBillboardInfo($billboardInfo, 'bb_image', $cols->item(0));
+        $this->putImageIntoBillboardInfo($billboardInfo, 'bb_shema', $cols->item(1));
+    }
+
+    /**
+     * Берет путь к изображению в элементе, и если путь к изображению существует, а также изображение доступно,
+     * то помещает url в элемент ассоциативного массива по заданному ключу.
+     *
+     * @param array $billboardInfo массив для установки значений
+     * @param string $arrayElementName название ключа массива $billboardInfo
+     * @param DOMElement $column элемент с изображением
+     */
+    protected function putImageIntoBillboardInfo(&$billboardInfo, $arrayElementName, $column)
+    {
+        if ($img = $column->getElementsByTagName('img')->item(0))
+        {
+            if($src = trim($img->getAttribute('src')))
+            {
+                $url = $this->host . $src;
+
+                // Проверим доступность.
+                if (file_get_contents($url))
+                {
+                    $billboardInfo[$arrayElementName] = $this->host . $src;
+                }
+            }
+        }
     }
 }
