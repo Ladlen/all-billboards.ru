@@ -42,7 +42,10 @@ class ScrapeBillboards
 
         foreach ($rows as $row)
         {
-            $boards[] = $this->parseBillboard($row);
+            if ($billboardInfo = $this->parseBillboard($row))
+            {
+                $boards[] = $billboardInfo;
+            }
         }
 
         return $boards;
@@ -56,17 +59,19 @@ class ScrapeBillboards
      */
     protected function parseBillboard($row)
     {
-        $billboardInfo = [
-            'bb_address' => null,   // Адрес щита
-            'bb_side' => null,      // Сторона щита
-            'bb_link_owner_site' => null, // Ссылка на карточку щита (всплывающее окно с фото и схемой щита)
-            'bb_image' => null,     // Ссылка на фото щита
-            'bb_shema' => null      // Ссылка на схему щита
-        ];
+        $billboardInfo = false;
 
         $cols = $row->getElementsByTagName('td');
         if ($cols->length == 3)
         {
+            $billboardInfo = [
+                'bb_address' => null,   // Адрес щита
+                'bb_side' => null,      // Сторона щита
+                'bb_link_owner_site' => null, // Ссылка на карточку щита (всплывающее окно с фото и схемой щита)
+                'bb_image' => null,     // Ссылка на фото щита
+                'bb_shema' => null      // Ссылка на схему щита
+            ];
+
             $billboardInfo['bb_side'] = isset($this->config['side_letter']['associations'][$cols->item(
                     1
                 )->textContent]) ?
