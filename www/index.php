@@ -1,33 +1,28 @@
 <?php
-
-define('APP_DIR', dirname(__FILE__) . '/../app/');
-$config = require_once(APP_DIR . 'config.php');
-
-if ($config->mode = 'debug')
-{
     error_reporting(E_ALL);
     ini_set('display_errors', true);
     ini_set('display_startup_errors', true);
-}
-else
-{
-    error_reporting(0);
-}
+?>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>РџР°СЂСЃРёРЅРі С„РѕС‚РѕРіСЂР°С„РёР№ Рё СЃС…РµРј</title>
+</head>
+<body>
 
-try
-{
-    $app = new Application($config)->run();
-}
-catch (Exception $e)
-{
-    if ($config->mode = 'debug')
-    {
-        echo 'Произошла ошибка. Код: ' . $e->getCode() . "\n. Сообщение: " . $e->getMessage() .
-            "\n. Файл: " . $e->getFile() . "\n. Строка: " . $e->getFile() . "\n. Trace: " . $e->getTraceAsString() . "\n";
-    }
-    else
-    {
-        echo "Ошибка на сервере\n";
-    }
-}
+<?php
+    define('APP_DIR', realpath(dirname(__FILE__) . '/../app') . '/');
+    $config = require_once(APP_DIR . 'config/config.php');
 
+    require_once(APP_DIR . 'config/ErrorHandlingCommon.class.php');
+    new ErrorHandlingCommon($config);
+
+    require_once(APP_DIR . 'helpers/ScrapeBillboards.class.php');
+    $boards = (new ScrapeBillboards($config))->scrape();
+
+    print_r($boards);
+?>
+
+</body>
+</html>
