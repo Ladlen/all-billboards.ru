@@ -6,6 +6,8 @@
 </head>
 <body>
 
+<pre>
+
 <?php
     define('APP_DIR', realpath(dirname(__FILE__) . '/../app') . '/');
     $config = require_once(APP_DIR . 'config/config.php');
@@ -18,6 +20,8 @@
 
     print_r($boards);
 ?>
+
+</pre>
 
 </body>
 </html>
